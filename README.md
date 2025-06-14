@@ -1,8 +1,8 @@
 # Plex Added Date Manager
 
-This project is a Streamlit application that interacts with the Plex API to fetch and manage movie data (Specifically Added Date).
+Streamlit (Python) app that interacts with the Plex API to fetch and manage movie data (Specifically Added Date).
 
-<img width="1231" alt="screen" src="https://github.com/user-attachments/assets/49deac43-e9e7-4fc6-aacb-bfd954715512" />
+<img width="1231" alt="screen" src="https://github.com/user-attachments/assets/3fae4793-9799-48d8-9715-62fc80f95601" />
 
 ## Setup Instructions
 
