@@ -1,0 +1,5 @@
+streamlit
+plexapi
+pandas
+datetime
+python-dotenv
