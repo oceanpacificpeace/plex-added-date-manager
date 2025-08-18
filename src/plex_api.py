@@ -43,3 +43,11 @@ class PlexAPI:
             return True
         else:
             response.raise_for_status()
+
+    def fetch_seasons(self, section_id):
+        url = f"{self.base_url}/library/sections/{section_id}/all?type=2"
+        response = requests.get(url, headers=self._get_headers())
+        if response.status_code == 200:
+            return response.json().get('MediaContainer', {}).get('Metadata', [])
+        else:
+            response.raise_for_status()
