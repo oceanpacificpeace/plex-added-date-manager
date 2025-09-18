@@ -63,7 +63,6 @@ def main():
     with tab2:
         section_id = "2" 
         type_id = "2"
-        # Fetch TV Series
         seasons = plex.fetch_seasons(section_id)
         seasons = sorted(seasons, key=lambda s: int(s.get('addedAt', 0)), reverse=True)
         if seasons:
@@ -97,9 +96,30 @@ def main():
                         key=f"season_date_{season.get('ratingKey')}"
                     )
                     new_date_unix = int(datetime.datetime.combine(new_date, datetime.datetime.min.time()).timestamp())
-                    if st.button("Update Date", key=f"update_season_{season.get('ratingKey')}"):
-                        plex.update_added_date(section_id, season.get('ratingKey'), type_id, new_date_unix)
-                        st.success(f"Updated added date for {season.get('title', 'Unknown Season')} to {new_date}")
+                    
+                    if st.button("Update Date", key=f"update_all_{season.get('ratingKey')}"):
+                        with st.spinner("Updating season and all episodes..."):
+                            # Method 1: Update the season/series itself
+                            try:
+                                plex.update_added_date(section_id, season.get('ratingKey'), type_id, new_date_unix)
+                                st.info("✓ Updated season metadata")
+                            except Exception as e:
+                                st.warning(f"⚠ Season update failed: {str(e)}")
+                            
+                            # Method 2: Update all episodes in the series
+                            try:
+                                season_rating_key = season.get('ratingKey')
+                                parent_rating_key = season.get('parentRatingKey')
+                                if not parent_rating_key:
+                                    parent_rating_key = season_rating_key
+                                
+                                updated, failed = plex.update_all_episodes_date(section_id, parent_rating_key, new_date_unix)
+                                if failed == 0:
+                                    st.success(f"✅ Updated {updated} episodes to {new_date}")
+                                else:
+                                    st.success(f"✅ Updated {updated} episodes, {failed} failed")
+                            except Exception as e:
+                                st.error(f"❌ Episode update failed: {str(e)}")
         else:
             st.write("No TV seasons found.")
 
