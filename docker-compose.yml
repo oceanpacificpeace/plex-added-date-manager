@@ -1,0 +1,10 @@
+services:
+  plex-added-date:
+    image: plex-added-date-manager:latest
+    restart: unless-stopped
+    command: ["streamlit", "run", "src/app.py"]
+    ports:
+      - 8501:8501
+    environment:
+      - PLEX_TOKEN=enter_token_here
+      - PLEX_BASE_URL=http://plex-server:32400
