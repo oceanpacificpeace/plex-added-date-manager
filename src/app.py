@@ -1,28 +1,55 @@
 import streamlit as st
+import requests
 from plex_api import PlexAPI
 import datetime
 
 st.set_page_config(page_title="Plex Added Date Manager")
 
+
+def select_library(sections, label, key):
+    """Let the user pick one library from a list of Plex sections. Returns its key, or None."""
+    if not sections:
+        return None
+    if len(sections) == 1:
+        return str(sections[0].get('key'))
+    titles = {str(s.get('key')): s.get('title', f"Library {s.get('key')}") for s in sections}
+    return st.selectbox(label, options=list(titles), format_func=titles.get, key=key)
+
+
 def main():
     st.markdown("<h2 style='text-align: center;'>Plex Added Date Manager</h2>", unsafe_allow_html=True)
     # Initialize Plex API
     plex = PlexAPI()
-    
+
+    if not plex.base_url or not plex.token:
+        st.error("PLEX_BASE_URL and PLEX_TOKEN must be set (see README).")
+        st.stop()
+
+    try:
+        sections = plex.fetch_sections()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Could not load libraries from {plex.base_url}: {e}")
+        st.stop()
+    movie_sections = [s for s in sections if s.get('type') == 'movie']
+    show_sections = [s for s in sections if s.get('type') == 'show']
+
     tab1, tab2 = st.tabs(["Movies", "TV Series"])
 
     # --- Movies Tab ---
     with tab1:
-        # Fetch all movies
-        movies = plex.get_all_movies()
+        section_id = select_library(movie_sections, "Movie library", "movie_library")
+        if section_id is None:
+            st.write("No movie libraries found.")
+            movies = []
+        else:
+            movies = plex.get_all_movies(section_id) or []
 
         # Sort movies by addedAt descending (most recent first)
         movies = sorted(movies, key=lambda m: int(m.get('addedAt', 0)), reverse=True)
 
         # Display movies
         if movies:
-            section_id = "1"
-            type_id = "1" 
+            type_id = "1"
             for movie in movies:
                 cols = st.columns([1, 2])
                 with cols[0]:
@@ -56,14 +83,18 @@ def main():
                     if st.button("Update Date", key=f"update_{movie.get('ratingKey')}"):
                         plex.update_added_date(section_id, movie.get('ratingKey'), type_id, new_date_unix)
                         st.success(f"Updated added date for {movie.get('title', 'Unknown Title')} to {new_date}")
-        else:
+        elif section_id is not None:
             st.write("No movies found.")
 
     # --- TV Series Tab ---
     with tab2:
-        section_id = "2" 
         type_id = "2"
-        seasons = plex.fetch_seasons(section_id)
+        section_id = select_library(show_sections, "TV library", "tv_library")
+        if section_id is None:
+            st.write("No TV libraries found.")
+            seasons = []
+        else:
+            seasons = plex.fetch_seasons(section_id) or []
         seasons = sorted(seasons, key=lambda s: int(s.get('addedAt', 0)), reverse=True)
         if seasons:
             for season in seasons:
@@ -120,7 +151,7 @@ def main():
                                     st.success(f"✅ Updated {updated} episodes, {failed} failed")
                             except Exception as e:
                                 st.error(f"❌ Episode update failed: {str(e)}")
-        else:
+        elif section_id is not None:
             st.write("No TV seasons found.")
 
 if __name__ == "__main__":

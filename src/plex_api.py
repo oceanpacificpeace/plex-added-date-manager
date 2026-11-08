@@ -19,16 +19,30 @@ class PlexAPI:
             'Accept': 'application/json'
         }
 
-    def fetch_movies(self):
-        url = f"{self.base_url}/library/sections/1/all"
+    def fetch_sections(self, section_type=None):
+        """Fetch all libraries (sections) on the server.
+
+        section_type: optional Plex library type to filter by, e.g. "movie" or "show".
+        Returns a list of dicts with at least 'key', 'title' and 'type'.
+        """
+        url = f"{self.base_url}/library/sections"
+        response = requests.get(url, headers=self._get_headers())
+        response.raise_for_status()
+        sections = response.json().get('MediaContainer', {}).get('Directory', [])
+        if section_type:
+            sections = [s for s in sections if s.get('type') == section_type]
+        return sections
+
+    def fetch_movies(self, section_id):
+        url = f"{self.base_url}/library/sections/{section_id}/all"
         response = requests.get(url, headers=self._get_headers())
         if response.status_code == 200:
             return response.json().get('MediaContainer', {}).get('Metadata', [])
         else:
             response.raise_for_status()
 
-    def get_all_movies(self):
-        return self.fetch_movies()
+    def get_all_movies(self, section_id):
+        return self.fetch_movies(section_id)
 
     def fetch_tv_shows(self, section_id):
         """Fetch all TV shows from a specific section"""
